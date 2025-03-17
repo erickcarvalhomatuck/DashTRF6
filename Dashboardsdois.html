@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Processos - TRF6</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Estilo geral */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        .container {
+            text-align: center;
+            width: 80%;
+            max-width: 600px;
+        }
+
+        h1 {
+            font-size: 2em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 img {
+            width: 30px;
+            height: auto;
+            margin-right: 10px;
+        }
+
+        .input-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 1em;
+            border: 2px solid #333;
+            border-radius: 5px;
+            background-color: #333;
+            color: #fff;
+            margin-right: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #6200ea;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #3700b3;
+        }
+
+        .progress-container {
+            margin-top: 20px;
+            height: 25px;
+            width: 100%;
+            background-color: #333;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background-color: #6200ea;
+            transition: width 0.3s;
+        }
+
+        .stats {
+            margin-top: 20px;
+            font-size: 1.2em;
+        }
+
+        .process-list {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #333;
+            padding: 20px;
+            border-radius: 5px;
+            width: 80%;
+            max-width: 800px;
+        }
+
+        .close-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .close-btn:hover {
+            background-color: #d32f2f;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>
+        <img src="logo.png" alt="Logo">
+        Dashboard de Processos
+    </h1>
+    
+    <div class="input-container">
+        <input type="text" id="processNumber" placeholder="Número do Processo" />
+        <button onclick="submitProcess()">Enviar</button>
+    </div>
+
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="stats">
+        <p>Processos enviados hoje: <span id="processCount">0</span></p>
+    </div>
+
+    <button onclick="showProcessList()">Mostrar Processos Enviados</button>
+    <button onclick="showMonthlyReport()">Relatório Mensal</button>
+
+    <div class="process-list" id="processList"></div>
+
+    <!-- Modal para o relatório -->
+    <div class="modal" id="reportModal">
+        <div class="modal-content">
+            <h2>Relatório Mensal</h2>
+            <canvas id="processChart"></canvas>
+            <div id="monthProcessList"></div>
+            <button class="close-btn" onclick="closeModal()">Fechar</button>
+        </div>
+    </div>
+
+    <div>
+        <input type="text" id="resetCode" placeholder="Digite 'RESETTRF6' para resetar" />
+        <button onclick="resetProgress()">Resetar Progresso</button>
+    </div>
+</div>
+
+<script>
+    const progressBar = document.getElementById('progressBar');
+    const processCount = document.getElementById('processCount');
+    const processListDiv = document.getElementById('processList');
+    const reportModal = document.getElementById('reportModal');
+    const ctx = document.getElementById('processChart').getContext('2d');
+
+    // Recupera os processos enviados e a data do último reset
+    let processosEnviados = JSON.parse(localStorage.getItem('processosEnviados')) || [];
+    let dataUltimoReset = localStorage.getItem('dataUltimoReset');
+    
+    // Função para verificar se o dia mudou e resetar
+    function verificarData() {
+        const hoje = new Date().toLocaleDateString();
+
+        if (dataUltimoReset !== hoje) {
+            localStorage.setItem('dataUltimoReset', hoje);
+            // Resetar a barra de progresso e o contador de processos para o dia
+            localStorage.setItem('processosHoje', JSON.stringify([])); 
+            document.getElementById('processCount').textContent = 0;
+            updateProgress();
+        }
+    }
+
+    // Função para atualizar a barra de progresso
+    function updateProgress() {
+        const processosHoje = JSON.parse(localStorage.getItem('processosHoje')) || [];
+        const progress = (processosHoje.length / 100) * 100; // Ajuste conforme necessário
+        progressBar.style.width = `${progress}%`;
+    }
+
+    // Função para enviar o processo
+    function submitProcess() {
+        const processNumber = document.getElementById('processNumber').value;
+
+        if (processNumber) {
+            const hoje = new Date().toLocaleDateString();
+            processosEnviados.push({ processNumber, date: hoje });
+            localStorage.setItem('processosEnviados', JSON.stringify(processosEnviados));
+            
+            // Adicionar o processo enviado ao dia atual
+            const processosHoje = JSON.parse(localStorage.getItem('processosHoje')) || [];
+            processosHoje.push({ processNumber, date: hoje });
+            localStorage.setItem('processosHoje', JSON.stringify(processosHoje));
+
+            updateProgress();
+            processCount.textContent = processosHoje.length;
+            document.getElementById('processNumber').value = ""; // Limpa o campo após envio
+        } else {
+            alert('Por favor, insira um número de processo.');
+        }
+    }
+
+    // Função para resetar a barra de progresso manualmente com código
+    function resetProgress() {
+        const resetCode = document.getElementById('resetCode').value;
+        if (resetCode === "RESETTRF6") {
+            localStorage.setItem('processosHoje', JSON.stringify([]));
+            document.getElementById('processCount').textContent = 0;
+            updateProgress();
+            alert('Progresso resetado com sucesso!');
+        } else {
+            alert('Código incorreto! Digite "RESETTRF6" para resetar.');
+        }
+    }
+
+    // Função para mostrar a lista de processos
+    function showProcessList() {
+        if (processosEnviados.length > 0) {
+            const list = processosEnviados.map(process => `<li>${process.processNumber}</li>`).join('');
+            processListDiv.innerHTML = `<h3>Processos Enviados:</h3><ul>${list}</ul>`;
+        } else {
+            processListDiv.innerHTML = "<p>Nenhum processo enviado ainda.</p>";
+        }
+    }
+
+    // Função para mostrar o relatório mensal
+    function showMonthlyReport() {
+        const monthlyData = getMonthlyData();
+        const labels = Object.keys(monthlyData);
+        const data = Object.values(monthlyData);
+
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Processos Enviados',
+                    data: data,
+                    backgroundColor: 'rgba(98, 0, 234, 0.6)',
+                    borderColor: 'rgba(98, 0, 234, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                },
+                onClick: function(e) {
+                    const activePoints = chart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                    if (activePoints.length) {
+                        const index = activePoints[0].index;
+                        const selectedMonth = labels[index];
+                        showProcessListForMonth(selectedMonth);
+                    }
+                }
+            }
+        });
+
+        reportModal.style.display = 'flex';
+    }
+
+    // Função para gerar dados mensais
+    function getMonthlyData() {
+        const monthlyData = {};
+        processosEnviados.forEach(item => {
+            const date = new Date(item.date);
+            const month = getMonthName(date.getMonth()) + '/' + date.getFullYear(); // Ex: "Março/2025"
+            if (!monthlyData[month]) {
+                monthlyData[month] = 0;
+            }
+            monthlyData[month]++;
+        });
+        return monthlyData;
+    }
+
+    // Função para retornar o nome do mês
+    function getMonthName(monthIndex) {
+        const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        return months[monthIndex];
+    }
+
+    // Função para mostrar a lista de processos de um mês específico
+    function showProcessListForMonth(month) {
+        const processesForMonth = processosEnviados.filter(process => {
+            const processMonth = new Date(process.date);
+            const processMonthName = getMonthName(processMonth.getMonth()) + '/' + processMonth.getFullYear();
+            return processMonthName === month;
+        });
+
+        const list = processesForMonth.map(process => `<li>${process.processNumber}</li>`).join('');
+        document.getElementById('monthProcessList').innerHTML = `<h3>Processos Enviados em ${month}:</h3><ul>${list}</ul>`;
+    }
+
+    // Função para fechar o modal
+    function closeModal() {
+        reportModal.style.display = 'none';
+    }
+
+    // Inicialização da página
+    verificarData();
+    processCount.textContent = JSON.parse(localStorage.getItem('processosHoje'))?.length || 0;
+    updateProgress();
+</script>
+
+</body>
+</html>
