@@ -1,0 +1,23 @@
+{
+    "manifest_version": 3,
+    "name": "Dashboard de Processos - TRF6",
+    "version": "1.0",
+    "description": "Extensão para gerenciar processos do TRF6.",
+    "permissions": ["storage"],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "logo.png",
+        "48": "logo.png",
+        "128": "logo.png"
+      }
+    },
+    "icons": {
+      "16": "logo.png",
+      "48": "logo.png",
+      "128": "logo.png"
+    },
+    "background": {
+      "service_worker": "background.js"
+    }
+  }

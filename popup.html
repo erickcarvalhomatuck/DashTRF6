@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Processos - TRF6</title>
+    <link rel="stylesheet" href="popup.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="popup.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <h1>
+            <img src="logo.png" alt="Logo">
+            Dashboard de Processos
+        </h1>
+        
+        <div class="input-container">
+            <input type="text" id="processNumber" placeholder="Número do Processo" />
+            <button id="submitProcess">Enviar</button>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="stats">
+            <p>Processos enviados hoje: <span id="processCount">0</span></p>
+        </div>
+
+        <button id="showProcessList">Mostrar Processos Enviados</button>
+        <button id="showMonthlyReport">Relatório Mensal</button>
+
+        <div class="process-list" id="processList"></div>
+
+        <!-- Modal para o relatório -->
+        <div class="modal" id="reportModal">
+            <div class="modal-content">
+                <h2>Relatório Mensal</h2>
+                <canvas id="processChart"></canvas>
+                <div id="monthProcessList"></div>
+                <button class="close-btn" id="closeModal">Fechar</button>
+            </div>
+        </div>
+
+        <div>
+            <input type="text" id="resetCode" placeholder="Digite 'RESETTRF6' para resetar" />
+            <button id="resetProgress">Resetar Progresso</button>
+        </div>
+    </div>
+</body>
+</html>
